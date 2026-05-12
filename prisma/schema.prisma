@@ -1,0 +1,524 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model University {
+  id              String           @id @default(uuid())
+  name            String
+  short_name      String           @db.VarChar(50)
+  city            String
+  address         String?
+  email           String?
+  website         String?
+  phone           String?
+  updated_at      DateTime         @updatedAt
+  created_at      DateTime         @default(now())
+  adminProfiles   AdminProfile[]
+  departments     Department[]
+  fculties        Faculty[]
+  studentProfiles StudentProfile[]
+  teacherProfiles TeacherProfile[]
+}
+
+model Faculty {
+  id            Int              @id @default(autoincrement())
+  name          String
+  code          String           @db.VarChar(50)
+  university_id String
+  updated_at    DateTime         @updatedAt
+  created_at    DateTime         @default(now())
+  courses       Course[]
+  departments   Department[]
+  university    University       @relation(fields: [university_id], references: [id], onDelete: Cascade)
+  students      StudentProfile[]
+
+  @@index([university_id], map: "Faculty_university_id_fkey")
+}
+
+model Department {
+  id            Int              @id @default(autoincrement())
+  name          String
+  code          String
+  faculty_id    Int
+  university_id String
+  updated_at    DateTime         @updatedAt
+  created_at    DateTime         @default(now())
+  faculty       Faculty          @relation(fields: [faculty_id], references: [id], onDelete: Cascade)
+  university    University       @relation(fields: [university_id], references: [id], onDelete: Cascade)
+  fields        Field[]
+  students      StudentProfile[]
+
+  @@index([faculty_id], map: "Department_faculty_id_fkey")
+  @@index([university_id], map: "Department_university_id_fkey")
+}
+
+model Field {
+  id              Int              @id @default(autoincrement())
+  name            String
+  code            String
+  academic_system AcademicSystem
+  department_id   Int
+  updated_at      DateTime         @updatedAt
+  created_at      DateTime         @default(now())
+  courses         Course[]
+  department      Department       @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  levels          Level[]
+  studentProfiles StudentProfile[]
+  modules         Module[]         @relation("FieldToModule")
+
+  @@index([department_id], map: "Field_department_id_fkey")
+}
+
+model Level {
+  id         Int              @id @default(autoincrement())
+  name       String
+  cycle      DegreeCycle
+  is_final   Boolean
+  field_id   Int
+  updated_at DateTime         @updatedAt
+  created_at DateTime         @default(now())
+  field      Field            @relation(fields: [field_id], references: [id], onDelete: Cascade)
+  students   StudentProfile[]
+  modules    Module[]         @relation("LevelToModule")
+
+  @@unique([field_id, name])
+}
+
+model Module {
+  id         Int      @id @default(autoincrement())
+  name       String
+  code       String
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  courses    Course[]
+  fields     Field[]  @relation("FieldToModule")
+  levels     Level[]  @relation("LevelToModule")
+
+  @@index([name])
+}
+
+model Course {
+  id                String             @id @default(uuid())
+  name              String
+  code              String
+  description       String             @db.LongText
+  module_id         Int
+  publisher_id      Int
+  updated_at        DateTime           @updatedAt
+  created_at        DateTime           @default(now())
+  status            CourseStatus       @default(DRAFT)
+  faculty_id        Int
+  field_id          Int
+  studentProfileId  Int?
+  faculty           Faculty            @relation(fields: [faculty_id], references: [id], onDelete: Cascade)
+  field             Field              @relation(fields: [field_id], references: [id], onDelete: Cascade)
+  module            Module             @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  publisher         TeacherProfile     @relation(fields: [publisher_id], references: [id], onDelete: Cascade)
+  studentProfile    StudentProfile?    @relation(fields: [studentProfileId], references: [id])
+  courseEnrollments CourseEnrollment[]
+  courseSections    CourseSection[]
+
+  @@index([faculty_id], map: "Course_faculty_id_fkey")
+  @@index([field_id], map: "Course_field_id_fkey")
+  @@index([module_id], map: "Course_module_id_fkey")
+  @@index([publisher_id], map: "Course_publisher_id_fkey")
+  @@index([studentProfileId], map: "Course_studentProfileId_fkey")
+}
+
+model CourseSection {
+  id                Int                @id @default(autoincrement())
+  order             Int
+  title             String             @db.VarChar(120)
+  content           String?            @db.LongText
+  course_id         String
+  updated_at        DateTime           @updatedAt
+  created_at        DateTime           @default(now())
+  courseEnrollments CourseEnrollment[]
+  materials         CourseMaterial[]
+  course            Course             @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@index([course_id], map: "CourseSection_course_id_fkey")
+}
+
+model CourseMaterial {
+  id                Int           @id @default(autoincrement())
+  name              String
+  type              FileTypes
+  link              String
+  course_section_id Int
+  created_at        DateTime      @default(now())
+  course_section    CourseSection @relation(fields: [course_section_id], references: [id], onDelete: Cascade)
+
+  @@index([course_section_id], map: "CourseMaterial_course_section_id_fkey")
+}
+
+model CourseEnrollment {
+  id                        Int            @id @default(autoincrement())
+  student_id                Int
+  course_id                 String
+  current_course_section_id Int?
+  updated_at                DateTime       @updatedAt
+  created_at                DateTime       @default(now())
+  course                    Course         @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  current_course_section    CourseSection? @relation(fields: [current_course_section_id], references: [id])
+  student                   StudentProfile @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, course_id])
+  @@index([course_id], map: "CourseEnrollment_course_id_fkey")
+  @@index([current_course_section_id], map: "CourseEnrollment_current_course_section_id_fkey")
+}
+
+model Session {
+  id         Int       @id @default(autoincrement())
+  user_id    String
+  device     String
+  token      String    @unique
+  expires_at DateTime?
+  created_at DateTime  @default(now())
+  is_expired Boolean   @default(false)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "Session_user_id_fkey")
+}
+
+model Otp {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  code       String
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, code])
+}
+
+model User {
+  id                    String            @id @default(uuid())
+  email                 String            @unique
+  avatar_url            String?
+  bio                   String?           @db.VarChar(255)
+  created_at            DateTime          @default(now())
+  deleted_at            DateTime?
+  first_name            String            @db.VarChar(35)
+  last_name             String            @db.VarChar(35)
+  password              String
+  role                  UserRoles         @default(STUDENT)
+  status                UserStatus        @default(PENDING)
+  student_id            String?           @unique
+  updated_at            DateTime          @updatedAt
+  onboarding_completed  Boolean           @default(false)
+  id_card_url           String?
+  admin_profile         AdminProfile?
+  bookmarks             Bookmark[]
+  chatParticipants      ChatParticipant[]
+  comments              Comment[]
+  connections_received  Connection[]      @relation("receivedConnections")
+  connections_sent      Connection[]      @relation("sentConnections")
+  likes                 Like[]
+  messages              Message[]
+  created_notifications Notification[]    @relation("notification_actor")
+  notifications         Notification[]    @relation("notification_receiver")
+  otps                  Otp[]
+  posts                 Post[]
+  sessions              Session[]
+  student_profile       StudentProfile?
+  teacher_profile       TeacherProfile?
+}
+
+model StudentProfile {
+  id                Int                @id @default(autoincrement())
+  field_id          Int
+  univeristy_id     String
+  user_id           String             @unique
+  department_id     Int
+  updated_at        DateTime           @updatedAt
+  created_at        DateTime           @default(now())
+  faculty_id        Int
+  level_id          Int
+  enrolled_courses  Course[]
+  courseEnrollments CourseEnrollment[]
+  department        Department         @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  faculty           Faculty            @relation(fields: [faculty_id], references: [id], onDelete: Cascade)
+  field             Field              @relation(fields: [field_id], references: [id], onDelete: Cascade)
+  level             Level              @relation(fields: [level_id], references: [id], onDelete: Cascade)
+  university        University         @relation(fields: [univeristy_id], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([department_id], map: "StudentProfile_department_id_fkey")
+  @@index([faculty_id], map: "StudentProfile_faculty_id_fkey")
+  @@index([field_id], map: "StudentProfile_field_id_fkey")
+  @@index([level_id], map: "StudentProfile_level_id_fkey")
+  @@index([univeristy_id], map: "StudentProfile_univeristy_id_fkey")
+}
+
+model TeacherProfile {
+  id                  Int           @id @default(autoincrement())
+  phone_number        String?       @db.VarChar(20)
+  university_of_study String
+  field_of_study      String
+  specialization      String
+  academic_title      AcademicTitle
+  univeristy_id       String
+  user_id             String        @unique
+  updated_at          DateTime      @updatedAt
+  created_at          DateTime      @default(now())
+  published_courses   Course[]
+  university          University    @relation(fields: [univeristy_id], references: [id], onDelete: Cascade)
+  user                User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([univeristy_id], map: "TeacherProfile_univeristy_id_fkey")
+}
+
+model AdminProfile {
+  id                Int          @id @default(autoincrement())
+  univeristy_id     String?
+  admin_type        AdminType
+  last_login_at     DateTime?
+  login_fails_count Int          @default(0)
+  user_id           String       @unique
+  updated_at        DateTime     @updatedAt
+  created_at        DateTime     @default(now())
+  university        University?  @relation(fields: [univeristy_id], references: [id])
+  user              User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  permissions       Permission[]
+
+  @@index([univeristy_id], map: "AdminProfile_univeristy_id_fkey")
+}
+
+model Permission {
+  id         Int          @id @default(autoincrement())
+  model_name String
+  admin_id   Int
+  can_write  Boolean
+  can_read   Boolean
+  can_delete Boolean
+  updated_at DateTime     @updatedAt
+  created_at DateTime     @default(now())
+  admin      AdminProfile @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+
+  @@unique([admin_id, model_name])
+}
+
+model Post {
+  id         Int         @id @default(autoincrement())
+  content    String
+  author_id  String
+  type       PostType    @default(FEED)
+  updated_at DateTime    @updatedAt
+  created_at DateTime    @default(now())
+  booksmarks Bookmark[]
+  comments   Comment[]
+  likes      Like[]
+  author     User        @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  postMedias PostMedia[]
+
+  @@index([author_id], map: "Post_author_id_fkey")
+}
+
+model Comment {
+  id         Int      @id @default(autoincrement())
+  content    String
+  author_id  String
+  post_id    Int
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  author     User     @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  post       Post     @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([author_id], map: "Comment_author_id_fkey")
+  @@index([post_id], map: "Comment_post_id_fkey")
+}
+
+model Like {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  post_id    Int
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  post       Post     @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, post_id])
+  @@index([post_id], map: "Like_post_id_fkey")
+}
+
+model Bookmark {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  post_id    Int
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  post       Post     @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, post_id])
+  @@index([post_id], map: "Bookmark_post_id_fkey")
+}
+
+model PostMedia {
+  id         Int       @id @default(autoincrement())
+  post_id    Int
+  type       FileTypes
+  url        String
+  updated_at DateTime  @updatedAt
+  created_at DateTime  @default(now())
+  post       Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id], map: "PostMedia_post_id_fkey")
+}
+
+model Connection {
+  id          Int              @id @default(autoincrement())
+  sender_id   String
+  receiver_id String
+  status      ConnectionStatus @default(PENDING)
+  updated_at  DateTime         @updatedAt
+  created_at  DateTime         @default(now())
+  receiver    User             @relation("receivedConnections", fields: [receiver_id], references: [id], onDelete: Cascade)
+  sender      User             @relation("sentConnections", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@unique([sender_id, receiver_id])
+  @@index([receiver_id], map: "Connection_receiver_id_fkey")
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  title       String
+  body        String
+  receiver_id String
+  actor_id    String
+  created_at  DateTime         @default(now())
+  entity_id   Int
+  type        NotificationType
+  is_read     Boolean          @default(false)
+  actor       User             @relation("notification_actor", fields: [actor_id], references: [id], onDelete: Cascade)
+  receiver    User             @relation("notification_receiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+
+  @@index([actor_id], map: "Notification_actor_id_fkey")
+  @@index([receiver_id], map: "Notification_receiver_id_fkey")
+}
+
+model Chat {
+  id              Int               @id @default(autoincrement())
+  last_message_id Int?              @unique
+  updated_at      DateTime          @updatedAt
+  created_at      DateTime          @default(now())
+  last_message    Message?          @relation("last_message", fields: [last_message_id], references: [id], onDelete: Cascade)
+  participants    ChatParticipant[]
+  messages        Message[]
+}
+
+model ChatParticipant {
+  id           Int       @id @default(autoincrement())
+  user_id      String
+  chat_id      Int
+  last_read_at DateTime?
+  chat         Chat      @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, chat_id])
+  @@index([chat_id], map: "ChatParticipant_chat_id_fkey")
+}
+
+model Message {
+  id            Int      @id @default(autoincrement())
+  sender_id     String?
+  chat_id       Int
+  text          String?  @db.VarChar(200)
+  created_at    DateTime @default(now())
+  last_for_chat Chat?    @relation("last_message")
+  chat          Chat     @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+  sender        User?    @relation(fields: [sender_id], references: [id])
+
+  @@index([chat_id])
+  @@index([created_at])
+  @@index([sender_id], map: "Message_sender_id_fkey")
+}
+
+enum NotificationType {
+  PUBLISHED_POST
+  COMMENT_POST
+  LIKE_POST
+  RECEIVED_MESSAGE
+  BOOKMARKED_POST
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  COURSE_ENROLLEMENT
+  COURSE_PUBLISHED
+  SYSTEM
+}
+
+enum AdminType {
+  SUPER_ADMIN
+  UNIVERSITY_ADMIN
+}
+
+enum FileTypes {
+  IMAGE
+  VIDEO
+  PDF
+  EXCEL
+  WORD
+  PPT
+  TXT
+  OTHER
+}
+
+enum UserRoles {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  CONFIRMED
+  BANED
+}
+
+enum AcademicSystem {
+  ENG
+  LMD
+  CLASSIC
+}
+
+enum DegreeCycle {
+  LICENSE
+  MASTER
+  DOCTORATE
+  ENGINEERING
+  CLASSIC
+}
+
+enum AcademicTitle {
+  ASSISTANT
+  LECTURER
+  PROFESSOR
+  DOCTOR
+  RESEARCHER
+  NONE
+}
+
+enum PostType {
+  FEED
+  FORUM
+  QUESTION
+  RESOURCE
+  ANNOUNCEMENT
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum CourseStatus {
+  DRAFT
+  PENDING
+  ACCEPTED
+  REJECTED
+}
