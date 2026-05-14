@@ -287,12 +287,12 @@ const moduleResource = {
       // Relations (optional but recommended)
       fields: {
         reference: 'Field',
-        isVisible: { list: false, show: true, edit: false },
+        isVisible: { list: false, show: true, edit: true },
       },
 
       levels: {
         reference: 'Level',
-        isVisible: { list: false, show: true, edit: false },
+        isVisible: { list: false, show: true, edit: true },
       },
 
       courses: {
