@@ -5,12 +5,16 @@ import provider from './admin/auth-provider.js';
 import options from './admin/options.js';
 import initializeDb from './db/index.js';
 import { createHierarchyRoutes } from './admin/routes/hierarchy.routes.js';
+import { createLevelsRoutes } from './admin/routes/levels.routes.js';
+import { createFieldsRoutes } from './admin/routes/fields.routes.js';
 const port = process.env.PORT || 3001;
 const start = async () => {
     const app = express();
     app.use('/public', express.static('public'));
     const { prisma } = await initializeDb();
     app.use('/api/hierarchy', createHierarchyRoutes(prisma));
+    app.use('/api/levels', createLevelsRoutes(prisma));
+    app.use('/api/fields', createFieldsRoutes(prisma));
     const admin = new AdminJS(options);
     if (process.env.NODE_ENV === 'production') {
         await admin.initialize();

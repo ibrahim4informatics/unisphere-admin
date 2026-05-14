@@ -16,5 +16,8 @@ export const Components = {
     FacultyShowChildren: componentLoader.add('FacultyShowChildren', './components/FacultyShowChildren'),
     DepartmentShowChildren: componentLoader.add('DepartmentShowChildren', './components/DepartmentShowChildren'),
     FieldShowChildren: componentLoader.add('FieldShowChildren', './components/FieldShowChildren'),
+    GroupedLevelsSelect: componentLoader.add("GroupedLevelsSelect", "./components/GroupedLevelsSelect"),
+    CustomFieldOptionSelect: componentLoader.add("CustomFieldOptionSelect", "./components/CustomFieldOptionSelect"),
+    ModuleShow: componentLoader.add("ModuleShow", "./components/ModuleShow")
 };
 export default componentLoader;

@@ -6,6 +6,56 @@ import initializeDB from '../db/index.js';
 import argon2 from "argon2";
 
 
+function mapDottedToArray(payload: any) {
+  const result = { ...payload }
+
+  const collections = ['fields', 'levels']
+
+  collections.forEach((key) => {
+    const values = Object.keys(payload)
+      .filter((k) => k.startsWith(`${key}.`))
+      .sort((a, b) => {
+        const ai = Number(a.split('.')[1])
+        const bi = Number(b.split('.')[1])
+        return ai - bi
+      })
+      .map((k) => Number(payload[k]))
+      .filter(Boolean)
+
+    if (values.length) {
+      result[key] = values
+    }
+
+    // remove dotted keys
+    Object.keys(payload)
+      .filter((k) => k.startsWith(`${key}.`))
+      .forEach((k) => delete result[k])
+  })
+
+  return result
+}
+
+const getFieldsOptions = async () => {
+  const fields = await prisma.field.findMany({
+    include: {
+      department: {
+        include: {
+          university: true,
+        },
+      },
+    },
+  })
+
+
+  const fieldOptions = fields.map((f) => ({
+    value: f.id,
+    label: `${f.name} — ${f.department.university.name}`,
+  }))
+
+  return fieldOptions
+}
+
+
 
 const hash = async (value: string): Promise<string> => {
   try {
@@ -239,6 +289,10 @@ const teacherProfileResource = {
     },
   },
 }
+
+
+
+
 const moduleResource = {
   resource: { model: getModelByName('Module'), client: prisma },
 
@@ -249,6 +303,159 @@ const moduleResource = {
     },
 
     listProperties: ['name', 'code', 'created_at'],
+
+    actions: {
+
+      show: {
+        component: Components.ModuleShow,
+        before: async (request, context) => {
+
+          if (request.method !== 'get') return request;
+
+          const module = await prisma.module.findUnique({ where: { id: context.record.id() }, include: { fields: { distinct: "name" }, levels: { distinct: "name" } } });
+          context.record.params["levels"] = module.levels;
+          context.record.params["fields"] = module.fields;
+          return request
+        }
+      },
+
+      new: {
+        handler: async (request, response, context) => {
+          const { payload } = request
+
+          // extract arrays from dotted keys
+          const fields = Object.keys(payload)
+            .filter(k => k.startsWith('fields.'))
+            .map(k => Number(payload[k]))
+
+
+          const levels = Object.keys(payload)
+            .filter(k => k.startsWith('levels.'))
+            .map(k => Number(payload[k]))
+
+          const module = await prisma.module.create({
+            data: {
+              name: payload.name,
+              code: payload.code,
+
+              fields: {
+                connect: fields.map(id => ({ id }))
+              },
+
+              levels: {
+                connect: levels.map(id => ({ id }))
+              }
+            }
+          })
+
+          console.log(levels)
+          console.log(fields)
+          console.log(payload)
+
+          return {
+            record: context.resource.build(module).toJSON(context.currentAdmin),
+            notice: {
+              message: 'Module created successfully',
+              type: 'success',
+            },
+            redirectUrl: `/admin/resources/Module`
+          }
+        }
+      },
+      edit: {
+        before: async (request, context) => {
+          // Only modify GET (when opening edit page)
+          if (request.method === 'get') {
+            const recordId = context.record?.params?.id
+
+            if (!recordId) return request
+
+            const module = await prisma.module.findUnique({
+              where: { id: Number(recordId) },
+              include: {
+                fields: true,
+                levels: true,
+              },
+            })
+
+            console.log(module)
+
+            if (!module) return request
+
+            // Convert arrays to dotted keys
+            module.fields.forEach((f, index) => {
+              context.record.params[`fields.${index}`] = f.id
+            })
+
+            module.levels.forEach((l, index) => {
+              context.record.params[`levels.${index}`] = l.id
+            })
+          }
+
+          return request
+        },
+
+
+        handler: async (request, response, context) => {
+
+          if (request.method !== "post") {
+            return {
+              record: context.record?.toJSON(context.currentAdmin),
+            }
+          }
+          console.log("spot")
+          const { payload } = request
+          const { record } = context
+
+          const fields = Object.keys(payload)
+            .filter(k => k.startsWith('fields.'))
+            .map(k => Number(payload[k]))
+
+          const levels = Object.keys(payload)
+            .filter(k => k.startsWith('levels.'))
+            .map(k => Number(payload[k]))
+
+
+
+
+          console.log("append /n" + levels)
+          console.log(fields)
+          const updated = await prisma.module.update({
+            where: { id: Number(record.params.id) },
+            data: {
+              name: payload.name,
+              code: payload.code,
+              fields: {
+                set: fields.map(id => ({ id })),
+              },
+              levels: {
+                set: levels.map(id => ({ id })),
+              },
+            },
+            include: {
+              fields: true,
+              levels: true,
+            },
+          })
+
+          return {
+            record: context.resource.build(updated).toJSON(context.currentAdmin),
+            notice: {
+              message: 'Updated successfully',
+              type: 'success',
+            },
+            redirectUrl: `/admin/resources/Module/records/${updated.id}/show`,
+          }
+
+
+
+
+        },
+
+
+
+      },
+    },
 
     showProperties: [
       'name',
@@ -288,11 +495,20 @@ const moduleResource = {
       fields: {
         reference: 'Field',
         isVisible: { list: false, show: true, edit: true },
+        isArray: true,
+        components: {
+          edit: Components.CustomFieldOptionSelect
+        }
+
       },
 
       levels: {
         reference: 'Level',
         isVisible: { list: false, show: true, edit: true },
+        isArray: true,
+        components: {
+          edit: Components.GroupedLevelsSelect
+        }
       },
 
       courses: {
@@ -673,6 +889,9 @@ const fieldResource = {
       name: { isRequired: true },
       code: {},
       academic_system: {},
+      field_id: {
+        availableValues: await getFieldsOptions(),
+      },
       department_id: { isVisible: { list: false, show: false, edit: false }, isRequired: true },
       departmentName: { isVisible: { list: true, show: true, edit: false }, label: 'Department' },
       levelCount: { isVisible: { list: true, show: true, edit: false }, label: 'Levels' },

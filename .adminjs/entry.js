@@ -29,3 +29,9 @@ import DepartmentShowChildren from '../dist/admin/components/DepartmentShowChild
 AdminJS.UserComponents.DepartmentShowChildren = DepartmentShowChildren
 import FieldShowChildren from '../dist/admin/components/FieldShowChildren'
 AdminJS.UserComponents.FieldShowChildren = FieldShowChildren
+import GroupedLevelsSelect from '../dist/admin/components/GroupedLevelsSelect'
+AdminJS.UserComponents.GroupedLevelsSelect = GroupedLevelsSelect
+import CustomFieldOptionSelect from '../dist/admin/components/CustomFieldOptionSelect'
+AdminJS.UserComponents.CustomFieldOptionSelect = CustomFieldOptionSelect
+import ModuleShow from '../dist/admin/components/ModuleShow'
+AdminJS.UserComponents.ModuleShow = ModuleShow

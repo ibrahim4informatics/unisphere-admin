@@ -6,6 +6,8 @@ import provider from './admin/auth-provider.js';
 import options from './admin/options.js';
 import initializeDb from './db/index.js';
 import { createHierarchyRoutes } from './admin/routes/hierarchy.routes.js';
+import { createLevelsRoutes } from './admin/routes/levels.routes.js';
+import { createFieldsRoutes } from './admin/routes/fields.routes.js';
 
 const port = process.env.PORT || 3001;
 
@@ -17,6 +19,8 @@ const start = async () => {
 
   // mount dynamic hierarchy API endpoints used by Admin custom components
   app.use('/api/hierarchy', createHierarchyRoutes(prisma));
+  app.use('/api/levels', createLevelsRoutes(prisma));
+  app.use('/api/fields', createFieldsRoutes(prisma));
 
   const admin = new AdminJS(options);
 
