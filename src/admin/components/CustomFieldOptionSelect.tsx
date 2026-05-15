@@ -45,7 +45,7 @@ export default function MultiFieldSelect(props) {
 
         try {
             const res = await fetch(
-                `http://localhost:5050/api/fields?name=${encodeURIComponent(search)}`
+                `/api/fields?name=${encodeURIComponent(search)}`
             )
 
             const data: Field[] = await res.json()
