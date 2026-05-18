@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ApiClient } from 'adminjs';
-import { Box, H1, H2, H3, Text, Button, Badge } from '@adminjs/design-system';
+import { Box, H1, H2, H3, Text, Button, Badge, Loader } from '@adminjs/design-system';
 const api = new ApiClient();
 const cardShadow = '0 16px 40px rgba(15,23,42,0.08)';
 const softShadow = '0 10px 24px rgba(15,23,42,0.06)';
@@ -166,7 +166,7 @@ const Dashboard = () => {
         return React.createElement(Text, { style: { color: '#EF4444' } }, error);
     }
     if (!data)
-        return React.createElement(Text, null, "Loading UniSphere dashboard...");
+        return React.createElement(Loader, null);
     const insightCards = [
         {
             title: 'Most Active Courses',
@@ -219,6 +219,12 @@ const Dashboard = () => {
             } },
             React.createElement(H1, { style: { margin: 0, fontSize: 34 } }, "UniSphere Admin Dashboard"),
             React.createElement(Text, { style: { color: 'rgba(255,255,255,0.9)', maxWidth: 520 } }, "Snapshot of platform growth, academic performance, and engagement.")),
+        React.createElement(Box, { style: { marginTop: 32 } },
+            React.createElement(SectionHeader, { title: "Admin Actions", badge: "Productivity" }),
+            React.createElement(Box, { style: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 } },
+                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/User'), style: { paddingLeft: 18, paddingRight: 18 } }, "Manage Users"),
+                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/Course?filters.status=PENDING'), style: { paddingLeft: 18, paddingRight: 18 } }, "Review Courses"),
+                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/Post'), style: { paddingLeft: 18, paddingRight: 18 } }, "Moderate Posts"))),
         React.createElement(SectionHeader, { title: "Global KPIs", badge: "University pulse" }),
         React.createElement(StatGrid, null,
             React.createElement(StatCard, { accent: formatPercent(data.kpis.users.total, data.kpis.users.total), title: "Total Users", value: data.kpis.users.total, color: "#4F46E5" }),
@@ -260,13 +266,6 @@ const Dashboard = () => {
             React.createElement(Box, { style: { background: 'white', padding: 24, borderRadius: 18, boxShadow: softShadow } },
                 React.createElement(SectionHeader, { title: "User Growth", badge: "Last 30 days" }),
                 React.createElement(LineChart, { points: data.charts.userGrowth }))),
-        React.createElement(Box, { style: { marginTop: 32 } },
-            React.createElement(SectionHeader, { title: "Admin Actions", badge: "Productivity" }),
-            React.createElement(Box, { style: { display: 'flex', gap: 12, flexWrap: 'wrap' } },
-                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/User'), style: { paddingLeft: 18, paddingRight: 18 } }, "Manage Users"),
-                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/Course?filters.status=PENDING'), style: { paddingLeft: 18, paddingRight: 18 } }, "Review Courses"),
-                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/Post'), style: { paddingLeft: 18, paddingRight: 18 } }, "Moderate Posts"),
-                React.createElement(Button, { variant: "primary", onClick: () => (window.location.href = '/admin/resources/CourseEnrollment'), style: { paddingLeft: 18, paddingRight: 18 } }, "View Enrollments"))),
         React.createElement(Box, { style: { marginTop: 32 } },
             React.createElement(SectionHeader, { title: "Content Insights", badge: "Engagement" }),
             React.createElement(Box, { style: {

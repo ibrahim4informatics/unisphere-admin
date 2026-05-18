@@ -55,6 +55,12 @@ const postResource = {
     resource: { model: getModelByName('Post'), client: prisma },
     options: {
         navigation: { name: 'Social', icon: 'Globe' },
+        filterProperties: [
+            "author",
+            "created_at",
+            "id",
+            "type"
+        ],
         listProperties: ['id', 'type', 'author', 'created_at'],
         sort: { sortBy: 'created_at', direction: 'desc' },
         properties: {
@@ -92,6 +98,11 @@ const commentResource = {
     options: {
         navigation: { name: 'Social', icon: 'Chat' },
         listProperties: ['content', 'post', 'author', 'created_at'],
+        filterProperties: [
+            "author",
+            "created_at",
+            "id",
+        ],
         properties: {
             post_id: { reference: 'Post' },
             author_id: { reference: 'User' },
@@ -1307,18 +1318,20 @@ const options = {
                         before: async (request) => {
                             if (request.method === 'post') {
                                 const payload = request.payload || {};
+                                console.log(request);
                                 if (payload.password) {
                                     const pass = await hash(payload.password);
                                     request.payload.password = pass;
                                 }
-                                return request;
                             }
+                            return request;
                         },
                         handler: async (request, response, context) => {
                             const recordId = context.record?.id() || context.record?.params?.id;
+                            console.log(request);
                             if (!recordId)
                                 return { record: context.record?.toJSON() };
-                            const payload = request.payload || {};
+                            const payload = request ? request.payload : {};
                             if (request.method === 'get') {
                                 const record = await buildUserRecord(context.resource, recordId);
                                 const referenceData = await getUserReferenceData();
@@ -1376,6 +1389,7 @@ const options = {
                                 record.params.referenceData = referenceData;
                             }
                             return {
+                                redirectUrl: `/admin/resources/User/records/${record.id()}/show`,
                                 record: record?.toJSON(),
                                 notice: { message: 'User updated', type: 'success' },
                             };

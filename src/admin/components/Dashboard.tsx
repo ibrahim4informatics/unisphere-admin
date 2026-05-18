@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ApiClient } from 'adminjs'
-import { Box, H1, H2, H3, Text, Button, Badge } from '@adminjs/design-system'
+import { Box, H1, H2, H3, Text, Button, Badge, Loader } from '@adminjs/design-system'
 
 const api = new ApiClient()
 
@@ -258,7 +258,7 @@ const Dashboard = () => {
     return <Text style={{ color: '#EF4444' }}>{error}</Text>
   }
 
-  if (!data) return <Text>Loading UniSphere dashboard...</Text>
+  if (!data) return <Loader />
 
   const insightCards = [
     {
@@ -301,6 +301,7 @@ const Dashboard = () => {
 
   return (
     <Box style={{ padding: 32, background: '#F8FAFC', minHeight: '100vh' }}>
+
       <Box
         style={{
           padding: 30,
@@ -318,6 +319,33 @@ const Dashboard = () => {
         <Text style={{ color: 'rgba(255,255,255,0.9)', maxWidth: 520 }}>
           Snapshot of platform growth, academic performance, and engagement.
         </Text>
+      </Box>
+
+      <Box style={{ marginTop: 32 }}>
+        <SectionHeader title="Admin Actions" badge="Productivity" />
+        <Box style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom:12 }}>
+          <Button
+            variant="primary"
+            onClick={() => (window.location.href = '/admin/resources/User')}
+            style={{ paddingLeft: 18, paddingRight: 18 }}
+          >
+            Manage Users
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => (window.location.href = '/admin/resources/Course?filters.status=PENDING')}
+            style={{ paddingLeft: 18, paddingRight: 18 }}
+          >
+            Review Courses
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => (window.location.href = '/admin/resources/Post')}
+            style={{ paddingLeft: 18, paddingRight: 18 }}
+          >
+            Moderate Posts
+          </Button>
+        </Box>
       </Box>
 
       <SectionHeader title="Global KPIs" badge="University pulse" />
@@ -468,39 +496,7 @@ const Dashboard = () => {
         </Box>
       </Box>
 
-      <Box style={{ marginTop: 32 }}>
-        <SectionHeader title="Admin Actions" badge="Productivity" />
-        <Box style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = '/admin/resources/User')}
-            style={{ paddingLeft: 18, paddingRight: 18 }}
-          >
-            Manage Users
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = '/admin/resources/Course?filters.status=PENDING')}
-            style={{ paddingLeft: 18, paddingRight: 18 }}
-          >
-            Review Courses
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = '/admin/resources/Post')}
-            style={{ paddingLeft: 18, paddingRight: 18 }}
-          >
-            Moderate Posts
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = '/admin/resources/CourseEnrollment')}
-            style={{ paddingLeft: 18, paddingRight: 18 }}
-          >
-            View Enrollments
-          </Button>
-        </Box>
-      </Box>
+
 
       <Box style={{ marginTop: 32 }}>
         <SectionHeader title="Content Insights" badge="Engagement" />
@@ -587,10 +583,10 @@ const Dashboard = () => {
             color="#4F46E5"
           />
 
-       
 
-   
- 
+
+
+
         </StatGrid>
       </Box>
     </Box>
